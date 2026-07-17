@@ -20,7 +20,11 @@ jobs:
         cache: npm
 
     - name: Install dependencies
-      run: npm install --include=optional
+      run: |
+        # Use clean install to ensure lockfile-consistent install
+        npm ci
+        # Rebuild native modules (rollup/esbuild) to avoid optional dep resolution issues
+        npm rebuild || true
 
     - name: Run Typechecks
       run: npm run typecheck
