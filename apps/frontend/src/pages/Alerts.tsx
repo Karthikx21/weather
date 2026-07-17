@@ -32,7 +32,9 @@ export default function Alerts() {
     {
       query: {
         enabled: !!location.lat && !!location.lon,
-        refetchInterval: 30000,
+        refetchInterval: (query) =>
+          document.visibilityState === 'visible' ? 60000 : false,
+        staleTime: 60000,
       }
     }
   );

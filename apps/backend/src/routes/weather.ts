@@ -5,7 +5,9 @@ import {
   GetHistoricalWeatherQueryParams,
   GetWeatherAlertsQueryParams,
 } from "@workspace/api-zod";
-import { getWeatherDescription, getAlerts } from "../lib/weather-utils";
+import { getWeatherDescription, getAlerts } from "../lib/weather-utils.js";
+import { cache, TTL } from "../lib/cache.js";
+import { fetchJson } from "../lib/request-manager.js";
 
 const router: IRouter = Router();
 
@@ -20,8 +22,10 @@ router.get("/weather/current", async (req, res): Promise<void> => {
   }
 
   const { lat, lon, timezone = "auto" } = parsed.data;
+  const cacheKey = `current:${lat.toFixed(4)}:${lon.toFixed(4)}`;
 
   try {
+    const result = await cache.getOrFetch(cacheKey, TTL.CURRENT_WEATHER, async () => {
     const url = new URL(`${OPEN_METEO_BASE}/forecast`);
     url.searchParams.set("latitude", String(lat));
     url.searchParams.set("longitude", String(lon));
@@ -47,13 +51,13 @@ router.get("/weather/current", async (req, res): Promise<void> => {
     url.searchParams.set("forecast_days", "1");
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`Open-Meteo error: ${response.status}`);
+    if (!response.ok) throw Object.assign(new Error(`Open-Meteo error: ${response.status}`), { status: response.status });
     const data = await response.json() as Record<string, unknown>;
 
     const cur = data.current as Record<string, unknown>;
     const daily = data.daily as Record<string, unknown[]>;
 
-    res.json({
+    return {
       temperature: cur.temperature_2m,
       feels_like: cur.apparent_temperature,
       humidity: cur.relative_humidity_2m,
@@ -73,10 +77,13 @@ router.get("/weather/current", async (req, res): Promise<void> => {
       sunset: (daily.sunset?.[0] as string) ?? "",
       moonrise: null,
       moonset: null,
+    };
     });
+    res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch current weather");
-    res.status(500).json({ error: "Failed to fetch weather data" });
+    const status = (err as any)?.status === 429 ? 429 : 500;
+    res.status(status).json({ error: "Failed to fetch weather data" });
   }
 });
 
@@ -88,8 +95,10 @@ router.get("/weather/forecast", async (req, res): Promise<void> => {
   }
 
   const { lat, lon, timezone = "auto", days = 7 } = parsed.data;
+  const cacheKey = `forecast:${lat.toFixed(4)}:${lon.toFixed(4)}:${days}`;
 
   try {
+    const result = await cache.getOrFetch(cacheKey, TTL.FORECAST, async () => {
     const url = new URL(`${OPEN_METEO_BASE}/forecast`);
     url.searchParams.set("latitude", String(lat));
     url.searchParams.set("longitude", String(lon));
@@ -121,7 +130,7 @@ router.get("/weather/forecast", async (req, res): Promise<void> => {
     ].join(","));
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`Open-Meteo error: ${response.status}`);
+    if (!response.ok) throw Object.assign(new Error(`Open-Meteo error: ${response.status}`), { status: response.status });
     const data = await response.json() as Record<string, unknown>;
 
     const hourly = data.hourly as Record<string, unknown[]>;
@@ -157,10 +166,13 @@ router.get("/weather/forecast", async (req, res): Promise<void> => {
       wind_gusts_max: (daily.wind_gusts_10m_max as number[])?.[i] ?? null,
     }));
 
-    res.json({ hourly: hourlyArr, daily: dailyArr });
+    return { hourly: hourlyArr, daily: dailyArr };
+    });
+    res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch forecast");
-    res.status(500).json({ error: "Failed to fetch forecast data" });
+    const status = (err as any)?.status === 429 ? 429 : 500;
+    res.status(status).json({ error: "Failed to fetch forecast data" });
   }
 });
 
@@ -202,9 +214,12 @@ router.get("/weather/historical", async (req, res): Promise<void> => {
       "is_day",
     ].join(","));
 
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`Open-Meteo archive error: ${response.status}`);
-    const data = await response.json() as Record<string, unknown>;
+    const data = await fetchJson<Record<string, unknown>>(url.toString(), {
+      timeoutMs: 8000,
+      retryCount: 2,
+      retryDelayMs: 500,
+      dedupeKey: `weather-historical:${lat.toFixed(4)}:${lon.toFixed(4)}:${start_date}:${end_date}`,
+    });
 
     const hourly = data.hourly as Record<string, unknown[]>;
     const daily = data.daily as Record<string, unknown[]>;
@@ -254,33 +269,34 @@ router.get("/weather/alerts", async (req, res): Promise<void> => {
   }
 
   const { lat, lon } = parsed.data;
+  const cacheKey = `alerts:${lat.toFixed(4)}:${lon.toFixed(4)}`;
 
   try {
-    const url = new URL(`${OPEN_METEO_BASE}/forecast`);
-    url.searchParams.set("latitude", String(lat));
-    url.searchParams.set("longitude", String(lon));
-    url.searchParams.set("current", [
-      "temperature_2m",
-      "wind_speed_10m",
-      "wind_gusts_10m",
-      "precipitation",
-      "weather_code",
-      "visibility",
-    ].join(","));
-    url.searchParams.set("hourly", "precipitation,wind_speed_10m,temperature_2m,weather_code");
-    url.searchParams.set("forecast_days", "2");
+    const result = await cache.getOrFetch(cacheKey, TTL.ALERTS, async () => {
+      const url = new URL(`${OPEN_METEO_BASE}/forecast`);
+      url.searchParams.set("latitude", String(lat));
+      url.searchParams.set("longitude", String(lon));
+      url.searchParams.set("current", [
+        "temperature_2m","wind_speed_10m","wind_gusts_10m",
+        "precipitation","weather_code","visibility",
+      ].join(","));
+      url.searchParams.set("hourly", "precipitation,wind_speed_10m,temperature_2m,weather_code");
+      url.searchParams.set("forecast_days", "2");
 
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`Open-Meteo error: ${response.status}`);
-    const data = await response.json() as Record<string, unknown>;
-
-    const cur = data.current as Record<string, number>;
-    const alerts = getAlerts(cur);
-
-    res.json(alerts);
+      const data = await fetchJson<Record<string, unknown>>(url.toString(), {
+        timeoutMs: 8000,
+        retryCount: 2,
+        retryDelayMs: 500,
+        dedupeKey: `weather-alerts:${cacheKey}`,
+      });
+      const cur = data.current as Record<string, number>;
+      return getAlerts(cur);
+    });
+    res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch weather alerts");
-    res.status(500).json({ error: "Failed to fetch weather alerts" });
+    const status = (err as any)?.status === 429 ? 429 : 500;
+    res.status(status).json({ error: "Failed to fetch weather alerts" });
   }
 });
 

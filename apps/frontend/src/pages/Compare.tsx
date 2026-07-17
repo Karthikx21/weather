@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useCompareCities, useSearchLocations } from '@workspace/api-client-react';
 import {
   BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -26,25 +26,20 @@ export default function Compare() {
   const debouncedQuery = useDebounce(query, 300);
 
   const compareMutation = useCompareCities();
+  const compareMutationRef = React.useRef(compareMutation);
+  compareMutationRef.current = compareMutation;
 
   const { data: searchResults } = useSearchLocations(
     { q: debouncedQuery, limit: 5 },
     { query: { enabled: debouncedQuery.length > 2 } }
   );
 
-  const runComparison = useCallback(
-    (list: CityEntry[]) => {
-      if (list.length === 0) return;
-      compareMutation.mutate({
-        data: { cities: list.map((c) => ({ name: c.name, lat: c.lat, lon: c.lon })) },
-      });
-    },
-    [compareMutation]
-  );
-
   React.useEffect(() => {
-    runComparison(cities);
-  }, [cities, runComparison]);
+    if (cities.length === 0) return;
+    compareMutationRef.current.mutate({
+      data: { cities: cities.map((c) => ({ name: c.name, lat: c.lat, lon: c.lon })) },
+    });
+  }, [cities]);
 
   const addCity = (city: CityEntry) => {
     if (cities.length >= 6 || cities.some((c) => c.name === city.name)) return;

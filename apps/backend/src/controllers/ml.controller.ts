@@ -2,6 +2,14 @@ import type { Request, Response } from "express";
 import { GetMlPredictionsQueryParams, GetMlModelsQueryParams, TriggerMlTrainingBody } from "@workspace/api-zod";
 import { trainAndPredict, type PredictionResult } from "../../../../ml/prediction/ml-engine.js";
 import { WeatherService } from "../services/weather.service.js";
+import { cache, TTL } from "../lib/cache.js";
+
+const getTrainingData = (lat: number, lon: number, days: number) =>
+  cache.getOrFetch(
+    `ml-training:${lat.toFixed(4)}:${lon.toFixed(4)}:${days}`,
+    TTL.ML_TRAINING,
+    () => WeatherService.fetchHistoricalForML(lat, lon, days)
+  );
 
 export class MlController {
   static async getPredictions(req: Request, res: Response): Promise<void> {
@@ -14,7 +22,7 @@ export class MlController {
     const { lat, lon } = parsed.data;
 
     try {
-      const trainingData = await WeatherService.fetchHistoricalForML(lat, lon, 90);
+      const trainingData = await getTrainingData(lat, lon, 90);
 
       const bestPred = (preds: PredictionResult[], label: string, unit: string) => {
         const best = preds[0];
@@ -65,7 +73,7 @@ export class MlController {
     const { lat, lon } = parsed.data;
 
     try {
-      const trainingData = await WeatherService.fetchHistoricalForML(lat, lon, 90);
+      const trainingData = await getTrainingData(lat, lon, 90);
       const { metrics } = trainAndPredict(trainingData, "tempMax");
 
       res.json({
@@ -94,6 +102,8 @@ export class MlController {
         lon,
         Math.min(days_of_history, 365)
       );
+      // Invalidate cached training data so next predictions use fresh data
+      cache.delete(`ml-training:${lat.toFixed(4)}:${lon.toFixed(4)}:90`);
       const { metrics: tempMetrics } = trainAndPredict(trainingData, "tempMax");
       const { metrics: windMetrics } = trainAndPredict(trainingData, "windSpeed");
 

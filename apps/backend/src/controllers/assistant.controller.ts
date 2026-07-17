@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { QueryAssistantBody } from "@workspace/api-zod";
 import { generateAssistantResponse, type WeatherContext } from "../services/assistant-engine.js";
+import { fetchJson } from "../lib/request-manager.js";
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
 const AIR_QUALITY_BASE = "https://air-quality-api.open-meteo.com/v1";
@@ -23,20 +24,19 @@ const WMO_CODES: Record<number, string> = {
 };
 
 async function fetchWeatherContext(lat: number, lon: number): Promise<WeatherFetchResult> {
-  const [weatherRes, aqRes] = await Promise.all([
-    fetch(
+  const [weather, aq] = await Promise.all([
+    fetchJson<Record<string, unknown>>(
       `${OPEN_METEO_BASE}/forecast?latitude=${lat}&longitude=${lon}` +
       `&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,cloud_cover,uv_index,is_day,visibility` +
       `&daily=precipitation_probability_max,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,wind_speed_10m_max` +
       `&hourly=precipitation_probability&forecast_days=2&timezone=auto`,
+      { timeoutMs: 8000, retryCount: 2, retryDelayMs: 500, dedupeKey: `assistant-weather:${lat.toFixed(4)}:${lon.toFixed(4)}` },
     ),
-    fetch(
+    fetchJson<Record<string, unknown>>(
       `${AIR_QUALITY_BASE}/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,nitrogen_dioxide,ozone,european_aqi&timezone=auto`,
+      { timeoutMs: 8000, retryCount: 2, retryDelayMs: 500, dedupeKey: `assistant-aq:${lat.toFixed(4)}:${lon.toFixed(4)}` },
     ),
   ]);
-
-  const weather = await weatherRes.json() as Record<string, unknown>;
-  const aq = await aqRes.json() as Record<string, unknown>;
 
   const cur = weather.current as Record<string, number>;
   const daily = weather.daily as Record<string, (number | string)[]>;

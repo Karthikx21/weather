@@ -65,7 +65,6 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
         setIsLoadingLocation(false);
       },
       (err) => {
-        console.warn('Geolocation unavailable:', err.code);
         setIsLoadingLocation(false);
       }
     );

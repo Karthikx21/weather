@@ -26,7 +26,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [location]);
 
   return (
-    <div className="min-h-[100dvh] w-full bg-background flex flex-col md:flex-row font-sans selection:bg-primary/30 overflow-x-hidden">
+    <div className="h-[100dvh] w-full bg-background flex flex-col md:flex-row font-sans selection:bg-primary/30 overflow-hidden">
       {/* Mobile Topbar */}
       <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-40 min-h-[56px]">
         <Link href="/" className="flex items-center gap-2 min-h-[44px]">
@@ -63,7 +63,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] bg-card/95 backdrop-blur-xl border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:w-64 md:shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] bg-card/95 backdrop-blur-xl border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:sticky md:top-0 md:h-[100dvh] md:translate-x-0 md:w-64 md:shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Sidebar navigation"
       >
         {/* Sidebar Header */}
@@ -136,10 +136,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 scroll-smooth">
-          {children}
-        </div>
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 scroll-smooth">
+        {children}
       </main>
     </div>
   );

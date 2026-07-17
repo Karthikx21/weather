@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { SearchLocationsQueryParams, ReverseGeocodeQueryParams } from "@workspace/api-zod";
+import { cache, TTL } from "../lib/cache.js";
 
 const router: IRouter = Router();
 
@@ -14,32 +15,27 @@ router.get("/geocoding/search", async (req, res): Promise<void> => {
   }
 
   const { q, limit = 10 } = parsed.data;
+  const cacheKey = `geo:${q.toLowerCase()}:${limit}`;
 
   try {
-    const url = new URL(`${GEOCODING_BASE}/search`);
-    url.searchParams.set("name", q);
-    url.searchParams.set("count", String(limit));
-    url.searchParams.set("language", "en");
-    url.searchParams.set("format", "json");
+    const results = await cache.getOrFetch(cacheKey, TTL.GEOCODING, async () => {
+      const url = new URL(`${GEOCODING_BASE}/search`);
+      url.searchParams.set("name", q);
+      url.searchParams.set("count", String(limit));
+      url.searchParams.set("language", "en");
+      url.searchParams.set("format", "json");
 
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error(`Geocoding API error: ${response.status}`);
-    const data = await response.json() as { results?: Record<string, unknown>[] };
+      const response = await fetch(url.toString());
+      if (!response.ok) throw new Error(`Geocoding API error: ${response.status}`);
+      const data = await response.json() as { results?: Record<string, unknown>[] };
 
-    const results = (data.results ?? []).map((r) => ({
-      id: r.id ?? null,
-      name: r.name,
-      lat: r.latitude,
-      lon: r.longitude,
-      country: r.country ?? "",
-      country_code: r.country_code ?? null,
-      admin1: r.admin1 ?? null,
-      admin2: r.admin2 ?? null,
-      timezone: r.timezone ?? null,
-      elevation: r.elevation ?? null,
-      population: r.population ?? null,
-    }));
-
+      return (data.results ?? []).map((r) => ({
+        id: r.id ?? null, name: r.name, lat: r.latitude, lon: r.longitude,
+        country: r.country ?? "", country_code: r.country_code ?? null,
+        admin1: r.admin1 ?? null, admin2: r.admin2 ?? null,
+        timezone: r.timezone ?? null, elevation: r.elevation ?? null, population: r.population ?? null,
+      }));
+    });
     res.json(results);
   } catch (err) {
     req.log.error({ err }, "Failed to geocode search");

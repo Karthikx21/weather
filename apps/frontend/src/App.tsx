@@ -17,7 +17,25 @@ const MlPredictions = React.lazy(() => import('@/pages/MlPredictions'));
 const Assistant = React.lazy(() => import('@/pages/Assistant'));
 const Alerts = React.lazy(() => import('@/pages/Alerts'));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,       // 5 min — don't refetch if data is fresh
+      gcTime: 10 * 60 * 1000,          // 10 min cache
+      retry: (failureCount, error: any) => {
+        // Never retry 4xx errors
+        if (error?.status >= 400 && error?.status < 500) return false;
+        return failureCount < 2;
+      },
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+      refetchOnWindowFocus: false,     // Don't spam on tab switch
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 function PageLoader() {
   return (

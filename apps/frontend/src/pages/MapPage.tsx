@@ -27,7 +27,10 @@ function MapUpdater({ center }: { center: [number, number] }) {
 }
 
 function WeatherMarker({ lat, lon }: { lat: number; lon: number }) {
-  const { data } = useGetCurrentWeather({ lat, lon }, { query: { enabled: true } });
+  const { data } = useGetCurrentWeather(
+    { lat, lon },
+    { query: { enabled: !!lat && !!lon, staleTime: 5 * 60 * 1000 } }
+  );
   if (!data) return null;
 
   return (
