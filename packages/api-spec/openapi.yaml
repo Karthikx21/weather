@@ -1,0 +1,819 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: AERISYN – AI Weather Intelligence Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: weather
+    description: Weather data endpoints
+  - name: air-quality
+    description: Air quality monitoring
+  - name: geocoding
+    description: Location search and reverse geocoding
+  - name: cities
+    description: User city preferences
+  - name: ml
+    description: Machine learning predictions and model management
+  - name: assistant
+    description: AI weather assistant
+  - name: analytics
+    description: Historical analytics and comparisons
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /weather/current:
+    get:
+      operationId: getCurrentWeather
+      tags: [weather]
+      summary: Get current weather for a location
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+        - name: timezone
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Current weather data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentWeather"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /weather/forecast:
+    get:
+      operationId: getWeatherForecast
+      tags: [weather]
+      summary: Get hourly and daily forecast
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+        - name: timezone
+          in: query
+          required: false
+          schema: { type: string }
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer, default: 7 }
+      responses:
+        "200":
+          description: Forecast data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastData"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /weather/historical:
+    get:
+      operationId: getHistoricalWeather
+      tags: [weather]
+      summary: Get historical weather data
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+        - name: start_date
+          in: query
+          required: true
+          schema: { type: string, description: "YYYY-MM-DD" }
+        - name: end_date
+          in: query
+          required: true
+          schema: { type: string, description: "YYYY-MM-DD" }
+        - name: timezone
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Historical weather data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoricalWeather"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /weather/alerts:
+    get:
+      operationId: getWeatherAlerts
+      tags: [weather]
+      summary: Get weather alerts derived from current conditions
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Weather alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeatherAlert"
+
+  /air-quality:
+    get:
+      operationId: getAirQuality
+      tags: [air-quality]
+      summary: Get air quality data
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Air quality data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AirQuality"
+
+  /geocoding/search:
+    get:
+      operationId: searchLocations
+      tags: [geocoding]
+      summary: Search for locations by name
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 10 }
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeocodingResult"
+
+  /geocoding/reverse:
+    get:
+      operationId: reverseGeocode
+      tags: [geocoding]
+      summary: Reverse geocode coordinates
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Location info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeocodingResult"
+
+  /cities/favorites:
+    get:
+      operationId: getFavoriteCities
+      tags: [cities]
+      summary: Get favorite cities
+      responses:
+        "200":
+          description: Favorite cities list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FavoriteCity"
+    post:
+      operationId: addFavoriteCity
+      tags: [cities]
+      summary: Add a favorite city
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FavoriteCityInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FavoriteCity"
+
+  /cities/favorites/{id}:
+    delete:
+      operationId: removeFavoriteCity
+      tags: [cities]
+      summary: Remove a favorite city
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Removed
+
+  /cities/search-history:
+    get:
+      operationId: getSearchHistory
+      tags: [cities]
+      summary: Get recent search history
+      responses:
+        "200":
+          description: Search history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchHistoryItem"
+    post:
+      operationId: addSearchHistory
+      tags: [cities]
+      summary: Add a city to search history
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchHistoryInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchHistoryItem"
+    delete:
+      operationId: clearSearchHistory
+      tags: [cities]
+      summary: Clear all search history
+      responses:
+        "204":
+          description: Cleared
+
+  /ml/predictions:
+    get:
+      operationId: getMlPredictions
+      tags: [ml]
+      summary: Get ML weather predictions for a location
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: ML predictions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MlPredictions"
+
+  /ml/models:
+    get:
+      operationId: getMlModels
+      tags: [ml]
+      summary: Get ML model comparison metrics
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Model metrics comparison
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MlModelComparison"
+
+  /ml/train:
+    post:
+      operationId: triggerMlTraining
+      tags: [ml]
+      summary: Trigger ML model training with latest data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MlTrainInput"
+      responses:
+        "200":
+          description: Training result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MlTrainingResult"
+
+  /assistant/query:
+    post:
+      operationId: queryAssistant
+      tags: [assistant]
+      summary: Ask the AI weather assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantQueryInput"
+      responses:
+        "200":
+          description: Assistant response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantResponse"
+
+  /analytics/historical-summary:
+    get:
+      operationId: getHistoricalSummary
+      tags: [analytics]
+      summary: Get historical weather summary statistics
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number }
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [week, month, year]
+            default: month
+      responses:
+        "200":
+          description: Historical summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoricalSummary"
+
+  /analytics/comparison:
+    post:
+      operationId: compareCities
+      tags: [analytics]
+      summary: Compare weather across multiple cities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CityComparisonInput"
+      responses:
+        "200":
+          description: Comparison data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CityComparisonResult"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    CurrentWeather:
+      type: object
+      required:
+        - temperature
+        - feels_like
+        - humidity
+        - pressure
+        - wind_speed
+        - wind_direction
+        - visibility
+        - cloud_cover
+        - rainfall
+        - uv_index
+        - weather_code
+        - weather_description
+        - is_day
+        - sunrise
+        - sunset
+      properties:
+        temperature: { type: number }
+        feels_like: { type: number }
+        humidity: { type: number }
+        pressure: { type: number }
+        wind_speed: { type: number }
+        wind_direction: { type: number }
+        wind_gusts: { type: ["number", "null"] }
+        visibility: { type: number }
+        cloud_cover: { type: number }
+        rainfall: { type: number }
+        snowfall: { type: ["number", "null"] }
+        uv_index: { type: number }
+        weather_code: { type: integer }
+        weather_description: { type: string }
+        is_day: { type: integer }
+        sunrise: { type: string }
+        sunset: { type: string }
+        moonrise: { type: ["string", "null"] }
+        moonset: { type: ["string", "null"] }
+
+    HourlyWeather:
+      type: object
+      required: [time, temperature, humidity, precipitation_probability, weather_code, wind_speed, is_day]
+      properties:
+        time: { type: string }
+        temperature: { type: number }
+        feels_like: { type: ["number", "null"] }
+        humidity: { type: number }
+        precipitation_probability: { type: number }
+        precipitation: { type: ["number", "null"] }
+        weather_code: { type: integer }
+        weather_description: { type: string }
+        wind_speed: { type: number }
+        pressure: { type: ["number", "null"] }
+        uv_index: { type: ["number", "null"] }
+        is_day: { type: integer }
+
+    DailyWeather:
+      type: object
+      required: [date, temp_max, temp_min, weather_code, sunrise, sunset, precipitation_sum, precipitation_probability_max, wind_speed_max]
+      properties:
+        date: { type: string }
+        temp_max: { type: number }
+        temp_min: { type: number }
+        weather_code: { type: integer }
+        weather_description: { type: string }
+        sunrise: { type: string }
+        sunset: { type: string }
+        uv_index_max: { type: ["number", "null"] }
+        precipitation_sum: { type: number }
+        precipitation_probability_max: { type: number }
+        wind_speed_max: { type: number }
+        wind_gusts_max: { type: ["number", "null"] }
+
+    ForecastData:
+      type: object
+      required: [hourly, daily]
+      properties:
+        hourly:
+          type: array
+          items:
+            $ref: "#/components/schemas/HourlyWeather"
+        daily:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyWeather"
+
+    HistoricalWeather:
+      type: object
+      required: [daily, hourly]
+      properties:
+        daily:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyWeather"
+        hourly:
+          type: array
+          items:
+            $ref: "#/components/schemas/HourlyWeather"
+
+    WeatherAlert:
+      type: object
+      required: [id, type, severity, title, description]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        severity:
+          type: string
+          enum: [low, medium, high, extreme]
+        title: { type: string }
+        description: { type: string }
+        start_time: { type: ["string", "null"] }
+        end_time: { type: ["string", "null"] }
+
+    AirQuality:
+      type: object
+      required: [aqi, pm2_5, pm10, carbon_monoxide, nitrogen_dioxide, ozone, sulphur_dioxide, dust, uv_index]
+      properties:
+        aqi: { type: number }
+        aqi_category: { type: string }
+        pm2_5: { type: number }
+        pm10: { type: number }
+        carbon_monoxide: { type: number }
+        nitrogen_dioxide: { type: number }
+        ozone: { type: number }
+        sulphur_dioxide: { type: number }
+        dust: { type: ["number", "null"] }
+        uv_index: { type: number }
+        hourly:
+          type: array
+          items:
+            $ref: "#/components/schemas/AirQualityHourly"
+
+    AirQualityHourly:
+      type: object
+      required: [time, aqi, pm2_5, pm10]
+      properties:
+        time: { type: string }
+        aqi: { type: number }
+        pm2_5: { type: number }
+        pm10: { type: number }
+        ozone: { type: ["number", "null"] }
+        nitrogen_dioxide: { type: ["number", "null"] }
+
+    GeocodingResult:
+      type: object
+      required: [name, lat, lon, country]
+      properties:
+        id: { type: ["integer", "null"] }
+        name: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        country: { type: string }
+        country_code: { type: ["string", "null"] }
+        admin1: { type: ["string", "null"] }
+        admin2: { type: ["string", "null"] }
+        timezone: { type: ["string", "null"] }
+        elevation: { type: ["number", "null"] }
+        population: { type: ["integer", "null"] }
+
+    FavoriteCity:
+      type: object
+      required: [id, name, lat, lon, country, added_at]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        country: { type: string }
+        country_code: { type: ["string", "null"] }
+        admin1: { type: ["string", "null"] }
+        timezone: { type: ["string", "null"] }
+        added_at: { type: string }
+
+    FavoriteCityInput:
+      type: object
+      required: [name, lat, lon, country]
+      properties:
+        name: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        country: { type: string }
+        country_code: { type: ["string", "null"] }
+        admin1: { type: ["string", "null"] }
+        timezone: { type: ["string", "null"] }
+
+    SearchHistoryItem:
+      type: object
+      required: [id, name, lat, lon, country, searched_at]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        country: { type: string }
+        country_code: { type: ["string", "null"] }
+        admin1: { type: ["string", "null"] }
+        timezone: { type: ["string", "null"] }
+        searched_at: { type: string }
+
+    SearchHistoryInput:
+      type: object
+      required: [name, lat, lon, country]
+      properties:
+        name: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        country: { type: string }
+        country_code: { type: ["string", "null"] }
+        admin1: { type: ["string", "null"] }
+        timezone: { type: ["string", "null"] }
+
+    MlPrediction:
+      type: object
+      required: [target, predicted_value, unit, confidence, model_used]
+      properties:
+        target: { type: string }
+        predicted_value: { type: number }
+        unit: { type: string }
+        confidence: { type: number }
+        model_used: { type: string }
+        lower_bound: { type: ["number", "null"] }
+        upper_bound: { type: ["number", "null"] }
+
+    MlPredictions:
+      type: object
+      required: [location_lat, location_lon, predictions, generated_at]
+      properties:
+        location_lat: { type: number }
+        location_lon: { type: number }
+        predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/MlPrediction"
+        generated_at: { type: string }
+
+    MlModelMetric:
+      type: object
+      required: [model_name, rmse, mae, r2, accuracy]
+      properties:
+        model_name: { type: string }
+        rmse: { type: number }
+        mae: { type: number }
+        r2: { type: number }
+        accuracy: { type: number }
+        training_samples: { type: ["integer", "null"] }
+        last_trained: { type: ["string", "null"] }
+
+    MlModelComparison:
+      type: object
+      required: [models, best_model]
+      properties:
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/MlModelMetric"
+        best_model: { type: string }
+        target_variable: { type: string }
+
+    MlTrainInput:
+      type: object
+      required: [lat, lon]
+      properties:
+        lat: { type: number }
+        lon: { type: number }
+        days_of_history: { type: integer, default: 365 }
+
+    MlTrainingResult:
+      type: object
+      required: [success, message, models_trained, training_samples]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        models_trained:
+          type: array
+          items: { type: string }
+        training_samples: { type: integer }
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/MlModelMetric"
+
+    AssistantQueryInput:
+      type: object
+      required: [question, lat, lon]
+      properties:
+        question: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        city_name: { type: ["string", "null"] }
+
+    AssistantResponse:
+      type: object
+      required: [answer, confidence, weather_context]
+      properties:
+        answer: { type: string }
+        confidence: { type: string }
+        weather_context: { type: string }
+        recommendations:
+          type: array
+          items: { type: string }
+
+    HistoricalSummary:
+      type: object
+      required: [period, avg_temp, max_temp, min_temp, avg_humidity, total_rainfall, avg_wind_speed, avg_pressure, daily_data]
+      properties:
+        period: { type: string }
+        avg_temp: { type: number }
+        max_temp: { type: number }
+        min_temp: { type: number }
+        avg_humidity: { type: number }
+        total_rainfall: { type: number }
+        avg_wind_speed: { type: number }
+        avg_pressure: { type: number }
+        avg_aqi: { type: ["number", "null"] }
+        daily_data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyWeather"
+
+    CityComparisonInput:
+      type: object
+      required: [cities]
+      properties:
+        cities:
+          type: array
+          items:
+            $ref: "#/components/schemas/CityLocation"
+
+    CityLocation:
+      type: object
+      required: [name, lat, lon]
+      properties:
+        name: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        country: { type: ["string", "null"] }
+
+    CityComparisonResult:
+      type: object
+      required: [city, current_weather, air_quality]
+      properties:
+        city:
+          $ref: "#/components/schemas/CityLocation"
+        current_weather:
+          $ref: "#/components/schemas/CurrentWeather"
+        air_quality:
+          $ref: "#/components/schemas/AirQuality"
+        forecast_today:
+          $ref: "#/components/schemas/DailyWeather"

@@ -1,0 +1,25 @@
+{
+  "name": "workspace",
+  "version": "0.0.0",
+  "license": "MIT",
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build && concurrently -n backend,frontend \"npm run start:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm --workspace @workspace/aerisyn run dev",
+    "start:backend": "cross-env DATABASE_URL=postgresql://postgres:password@localhost:5432/aerisyn ALLOWED_ORIGIN=http://localhost:5173 npm --workspace @workspace/api-server run start",
+    "build": "npm run typecheck && npm --workspaces --if-present run build",
+    "typecheck:libs": "tsc --build --force",
+    "typecheck": "npm run typecheck:libs && npm --workspaces --if-present run typecheck"
+  },
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "prettier": "^3.9.5",
+    "typescript": "~5.9.3"
+  }
+}

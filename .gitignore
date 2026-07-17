@@ -1,0 +1,121 @@
+# ============================================================
+# Dependencies
+# ============================================================
+node_modules/
+.pnp
+.pnp.js
+
+# ============================================================
+# Build & Compiled Output
+# ============================================================
+dist/
+build/
+out/
+tmp/
+out-tsc/
+apps/frontend/dist/
+apps/backend/dist/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# ============================================================
+# Environment Variables — NEVER commit secrets
+# ============================================================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+
+# ============================================================
+# Logs
+# ============================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================================
+# OS Files
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# IDEs & Editors
+# ============================================================
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# VSCode — allow shared settings, ignore personal
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ============================================================
+# Testing & Coverage
+# ============================================================
+coverage/
+*.lcov
+.nyc_output/
+
+# ============================================================
+# Cache
+# ============================================================
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+.stylelintcache
+
+# ============================================================
+# Package Manager Locks (keep only one)
+# ============================================================
+# Uncomment the ones you do NOT use:
+# yarn.lock
+# pnpm-lock.yaml
+
+# ============================================================
+# ML / Data
+# ============================================================
+ml/datasets/*.csv
+ml/datasets/*.json
+ml/models/*.bin
+ml/models/*.pkl
+ml/evaluation/*.json
+
+# ============================================================
+# Docker
+# ============================================================
+.docker/
+
+# ============================================================
+# Misc
+# ============================================================
+*.tgz
+*.zip
+.vercel
+.netlify
